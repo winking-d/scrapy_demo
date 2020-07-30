@@ -6,12 +6,14 @@ import json
 import random
 import re
 import time
-from cgi import log
+# import logging
 
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from scrapy.http.response.html import HtmlResponse
+
+# log = logging.getLogger('scrapy.proxies')
 
 
 class AlibabaSpiderDownloaderMiddleware(object):
@@ -79,22 +81,22 @@ class RandomProxy(object):
         return cls(crawler.settings)
 
     def getProxy(self):
-        log.msg('get proxy')
+        print('get proxy')
         proxy_addr = json.loads(requests.get(self.PROXY_URL).text)['ip']
-        log.msg("[+]---get proxy ip is:" + proxy_addr)
+        print("[+]---get proxy ip is:" + proxy_addr)
         return proxy_addr
 
     def delip(self, proxy):
-        log.msg("要删除的ip:" + proxy)
+        print("要删除的ip:" + proxy)
         sql = 'delete from ip where data =%s' % '\'' + proxy + '\''
         sta = cursor.execute(sql)
-        log.msg(sql)
-        log.msg(sta)
+        print(sql)
+        print(sta)
         if sta > 0:
-            log.msg("del band ip from databases")
+            print("del band ip from databases")
             db.connection.commit()
         else:
-            log.msg('del ip faile')
+            print('del ip faile')
 
     def process_request(self, request, spider):
         if 'proxy' in request.meta:
@@ -106,7 +108,7 @@ class RandomProxy(object):
     def process_response(self, request, response, spider):
 
         if response.status in [403, 400, 302] and 'proxy' in request.meta:
-            log.msg('Response status: {0} using proxy {1} retrying request to {2}'.format(response.status, \
+            print('Response status: {0} using proxy {1} retrying request to {2}'.format(response.status, \
                                                                                           request.meta['proxy'],
                                                                                           request.url))
             proxy = request.meta['proxy']
@@ -115,7 +117,7 @@ class RandomProxy(object):
             try:
                 # 删除数据库里的ip
                 self.delip(proxyip)
-                log.msg('deleted banned proxy , proxy %s' % proxyip)
+                print('deleted banned proxy , proxy %s' % proxyip)
             except KeyError:
                 pass
             self.chosen_proxy = self.getProxy()  # 这个代理被403,302了 重新获取
@@ -124,10 +126,10 @@ class RandomProxy(object):
 
     def process_exception(self, request, exception, spider):
         if 'proxy' not in request.meta:
-            log.msg("没代理错了,需要检查")
+            print("没代理错了,需要检查")
             return
         else:
-            log.msg("有代理也错了，把数据库的ip删掉")
+            print("有代理也错了，把数据库的ip删掉")
             proxy = request.meta['proxy']
             proxyip = proxy.split("//")[1]
             try:
@@ -136,6 +138,6 @@ class RandomProxy(object):
             except KeyError:
                 pass
             request.meta["exception"] = True
-            log.msg("重新获取ip")
+            print("重新获取ip")
             self.chosen_proxy = self.getProxy()
             return request
